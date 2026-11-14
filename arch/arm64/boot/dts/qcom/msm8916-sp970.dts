@@ -1,0 +1,102 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Device Tree for SP970 (MSM8916) 4G LTE USB Wi-Fi Stick (Linux 6.12 LTS)
+ * Restores 85 MB mpss@86800000 baseband + bam_dmux + rmtfs + WCN3660B 48MHz XO + ramoops
+ */
+
+/dts-v1/;
+
+#include "msm8916-ufi.dtsi"
+
+/ {
+	model = "OpenStick SP970 4G Modem Stick";
+	compatible = "handsome,openstick-sp970", "handsome,openstick", "qcom,msm8916";
+
+	reserved-memory {
+		ramoops@8eb00000 {
+			compatible = "ramoops";
+			reg = <0x0 0x8eb00000 0x0 0x100000>;
+			record-size = <0x20000>;
+			console-size = <0x40000>;
+			ftrace-size = <0x20000>;
+			pmsg-size = <0x20000>;
+		};
+	};
+
+	usb_id: usb-id {
+		compatible = "linux,extcon-usb-gpio";
+		id-gpios = <&tlmm 110 GPIO_ACTIVE_HIGH>;
+		pinctrl-0 = <&usb_id_default>;
+		pinctrl-names = "default";
+	};
+};
+
+/* Free 5 MB RAM on headless stick by disabling unused hardware video codec */
+&venus {
+	status = "disabled";
+};
+
+&venus_mem {
+	status = "disabled";
+};
+
+/* SP970 uses WCN3660B/WCN3680 RF with 48 MHz XO */
+&wcnss_iris {
+	compatible = "qcom,wcn3660b";
+};
+
+/* Support both USB Device (via PM8916 VBUS) and OTG Host (via GPIO110 ID) */
+&usb {
+	extcon = <&pm8916_usbin>, <&usb_id>;
+};
+
+&button_restart {
+	gpios = <&tlmm 107 GPIO_ACTIVE_LOW>;
+};
+
+&led_b {
+	gpios = <&tlmm 28 GPIO_ACTIVE_HIGH>;
+	function = LED_FUNCTION_WLAN;
+	linux,default-trigger = "phy0tx";
+};
+
+&led_g {
+	gpios = <&tlmm 10 GPIO_ACTIVE_HIGH>;
+	function = LED_FUNCTION_WAN;
+};
+
+&led_r {
+	gpios = <&tlmm 9 GPIO_ACTIVE_HIGH>;
+	function = LED_FUNCTION_HEARTBEAT;
+	linux,default-trigger = "heartbeat";
+	default-state = "on";
+};
+
+&button_default {
+	pins = "gpio107";
+	bias-pull-up;
+};
+
+&gpio_leds_default {
+	pins = "gpio9", "gpio10", "gpio28";
+};
+
+&tlmm {
+	usb_id_default: usb-id-default-state {
+		pins = "gpio110";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+};
+
+/* Safe default 200..998.4 MHz at boot; higher steps gated behind turbo-mode (boost=0 by default) */
+&cpu_opp_table {
+	opp-1094400000 { opp-hz = /bits/ 64 <1094400000>; turbo-mode; };
+	opp-1209600000 { opp-hz = /bits/ 64 <1209600000>; turbo-mode; };
+	opp-1363200000 { opp-hz = /bits/ 64 <1363200000>; turbo-mode; };
+	opp-1497600000 { opp-hz = /bits/ 64 <1497600000>; turbo-mode; };
+	opp-1612800000 { opp-hz = /bits/ 64 <1612800000>; turbo-mode; };
+	opp-1728000000 { opp-hz = /bits/ 64 <1728000000>; turbo-mode; };
+	opp-1843200000 { opp-hz = /bits/ 64 <1843200000>; turbo-mode; };
+};
